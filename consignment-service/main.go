@@ -2,16 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
-	"net"
+	"fmt"
 
-	pb "git.der-waldemar.net/shipping-application/consignment-service/proto/consignment"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-)
-
-const (
-	port = ":50051"
+	pb "github.com/lukasjarosch/shipping-application/consignment-service/proto/consignment"
+	micro "github.com/micro/go-micro"
 )
 
 type Repository interface {
@@ -43,39 +37,37 @@ type service struct {
 }
 
 // CreateConsignment - Implementation of the service as defined in protobuf
-func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment) (*pb.Response, error) {
+func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, res *pb.Response) error {
 	// Save consignment
 	consignment, err := s.repo.Create(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Return 'Response' message
-	return &pb.Response{Created: true, Consignment: consignment}, nil
+	res.Created = true
+	res.Consignment = consignment
+	return nil
 }
 
-func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest) (*pb.Response, error) {
+// GetConsignments - Fetch all consignments from repo and put them in the response
+func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest, res *pb.Response) error {
 	consignments := s.repo.GetAll()
-	return &pb.Response{Consignments: consignments}, nil
+	res.Consignments = consignments
+	return nil
 }
 
 func main() {
 	repo := &ConsignmentRepository{}
 
-	// Setup gRPC server
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen on: %v", err)
+	srv := micro.NewService(
+		micro.Name("go.micro.srv.consignment"),
+		micro.Version("latest"),
+	)
+	srv.Init()
+
+	pb.RegisterShippingServiceHandler(srv.Server(), &service{repo})
+
+	if err := srv.Run(); err != nil {
+		fmt.Println(err)
 	}
-	server := grpc.NewServer()
-
-	// Register our service with the gRPC server
-	pb.RegisterShippingServiceServer(server, &service{repo})
-
-	// Register reflection service on gRPC server
-	reflection.Register(server)
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-
 }
