@@ -1,6 +1,6 @@
 {
     "description": "This is a test consignment",
-    "weight": 550,
+    "weight": 55000,
     "containers": [
         { 
             "customer_id": "cust001", 

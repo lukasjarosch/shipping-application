@@ -18,7 +18,7 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY --from=builder /go/src/github.com/lukasjarosch/shipping-application/consignment-cli .
-COPY --from=builder /go/src/github.com/lukasjarosch/shipping-application/consignment.json .
+COPY --from=builder /go/src/github.com/lukasjarosch/shipping-application/consignment-cli/consignment.json .
 
 CMD ["./consignment-cli"]
 
